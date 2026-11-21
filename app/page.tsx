@@ -1,13 +1,13 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-
+import { MATERIAL_RATES } from '../lib/materials';
 export default function Home() {
   // États React pour faire fonctionner l'estimateur de prix
+  const [material, setMaterial] = useState('Plastic');
   const [weight, setWeight] = useState(10);
-  const [pricePerKg, setPricePerKg] = useState(0.8);
-
-  const estimatedValue = (weight * pricePerKg).toFixed(2);
+  const current = MATERIAL_RATES[material];
+  const estimatedValue = (weight * current.rate).toFixed(2);
 
   return (
     <div className="px-6 py-12 max-w-6xl mx-auto">
@@ -36,13 +36,16 @@ export default function Home() {
           {/* Choix de la matière */}
           <div className="flex-1 w-full">
             <label className="block text-earth text-sm font-bold mb-2">Type de matière</label>
-            <select 
-              className="w-full border-2 border-pale-leaf rounded-xl p-3 text-forest bg-sand outline-none focus:border-leaf cursor-pointer"
-              onChange={(e) => setPricePerKg(Number(e.target.value))}
+            <select
+             value={material}
+             onChange={(e) => setMaterial(e.target.value)}
+             className="w-full border-2 border-pale-leaf rounded-xl p-3 text-forest bg-sand outline-none focus:border-leaf cursor-pointer"
             >
-              <option value="0.8">Plastique (0.80 TND / kg)</option>
-              <option value="0.3">Carton (0.30 TND / kg)</option>
-              <option value="2.5">Aluminium (2.50 TND / kg)</option>
+             {Object.entries(MATERIAL_RATES).map(([key, m]) => (
+               <option key={key} value={key}>
+                 {m.label} ({m.rate.toFixed(2)} TND / {m.unit})
+               </option>
+              ))}
             </select>
           </div>
 
