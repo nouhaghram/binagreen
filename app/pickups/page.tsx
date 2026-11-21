@@ -1,32 +1,28 @@
 "use client";
 import { useState } from 'react';
-
+import { useBina } from '../../context/BinaContext';
+import { MATERIAL_RATES } from '../../lib/materials';
 // Données simulées (Mock API) pour le Grand Tunis
-const INITIAL_LISTINGS = [
-  { id: 1, material: 'Huile usagée', qty: '10 L', district: 'Ariana', distance: 1.2, gain: 15.0, slot: 'Mar, 17:00 - 19:00', owner: 'Café El Amen', phone: '+216 22 345 678', x: '45%', y: '35%' },
-  { id: 2, material: 'Plastique', qty: '5 kg', district: 'Tunis', distance: 2.4, gain: 4.0, slot: 'Mer, 14:00 - 16:00', owner: 'Sana M.', phone: '+216 55 987 654', x: '60%', y: '55%' },
-  { id: 3, material: 'Verre', qty: '8 kg', district: 'Ben Arous', distance: 2.9, gain: 3.2, slot: 'Lun, 16:00 - 18:00', owner: 'Restaurant Le Golfe', phone: '+216 98 112 233', x: '70%', y: '75%' },
-  { id: 4, material: 'Carton', qty: '15 kg', district: 'Manouba', distance: 4.5, gain: 4.5, slot: 'Jeu, 09:00 - 11:00', owner: 'Supérette Nour', phone: '+216 20 445 566', x: '25%', y: '50%' },
-];
+
 
 export default function PickupsPage() {
+  const { listings, bookListing } = useBina();
   const [maxDistance, setMaxDistance] = useState(5);
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
-  const [bookedIds, setBookedIds] = useState<number[]>([]);
-  const [activeListing, setActiveListing] = useState<typeof INITIAL_LISTINGS[0] | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  // On retrouve l'annonce active dans la liste partagée : elle est toujours à jour
+  const activeListing = listings.find((l) => l.id === activeId) ?? null;
 
   // Filtrage dynamique des annonces
-  const filteredListings = INITIAL_LISTINGS.filter((item) => {
-    const matchDist = item.distance <= maxDistance;
-    const matchMat = selectedMaterial === 'Tous' || item.material === selectedMaterial;
-    return matchDist && matchMat;
+  const filteredListings = listings.filter((item) => {
+   const notCollected = item.status !== 'Collecté';
+   const matchDist = item.distance <= maxDistance;
+   const matchMat = selectedMaterial === 'Tous' || item.material === selectedMaterial;
+   return notCollected && matchDist && matchMat;
   });
 
-  const handleBook = (id: number) => {
-    if (!bookedIds.includes(id)) {
-      setBookedIds([...bookedIds, id]);
-    }
-  };
+  
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -63,7 +59,7 @@ export default function PickupsPage() {
           <div>
             <label className="block text-sm font-bold text-earth mb-2">Matière</label>
             <div className="space-y-2">
-              {['Tous', 'Plastique', 'Verre', 'Carton', 'Huile usagée'].map((mat) => (
+              {['Tous', ...Object.values(MATERIAL_RATES).map((m) => m.label)].map((mat) => (
                 <button
                   key={mat}
                   onClick={() => setSelectedMaterial(mat)}
@@ -100,7 +96,7 @@ export default function PickupsPage() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveListing(item)}
+                onClick={() => setActiveId(item.id)}
                 style={{ left: item.x, top: item.y }}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition transform hover:scale-110 ${
                   isSelected
@@ -121,11 +117,11 @@ export default function PickupsPage() {
                   <h3 className="font-heading font-bold text-forest">{activeListing.material} — {activeListing.qty}</h3>
                   <p className="text-xs text-earth">{activeListing.district} ({activeListing.distance} km) • {activeListing.slot}</p>
                 </div>
-                <button onClick={() => setActiveListing(null)} className="text-earth text-sm font-bold">✕</button>
+                <button onClick={() => setActiveId(null)} className="text-earth text-sm font-bold">✕</button>
               </div>
               
               {/* Sécurité : téléphone masqué tant que non réservé (règle Objectif 1 & 2) */}
-              {bookedIds.includes(activeListing.id) ? (
+              {activeListing.status === 'Réservé' ? (
                 <div className="bg-pale-leaf p-2.5 rounded-xl text-xs text-forest font-bold">
                   ✓ Réservé ! Contact ({activeListing.owner}) : {activeListing.phone}
                 </div>
@@ -133,7 +129,7 @@ export default function PickupsPage() {
                 <div className="flex justify-between items-center mt-3">
                   <span className="text-xs text-earth">🔒 Numéro débloqué après réservation</span>
                   <button
-                    onClick={() => handleBook(activeListing.id)}
+                    onClick={() => bookListing(activeListing.id)}
                     className="px-4 py-1.5 bg-yellow text-ink text-xs font-bold rounded-full hover:opacity-90"
                   >
                     Réserver ({activeListing.gain} TND)
@@ -156,11 +152,11 @@ export default function PickupsPage() {
             </div>
           ) : (
             filteredListings.map((item) => {
-              const isBooked = bookedIds.includes(item.id);
+              const isBooked = item.status === 'Réservé';
               return (
                 <div
                   key={item.id}
-                  onClick={() => setActiveListing(item)}
+                  onClick={() => setActiveId(item.id)}
                   className={`bg-white p-5 rounded-2xl border-2 transition cursor-pointer ${
                     activeListing?.id === item.id ? 'border-forest shadow-md' : 'border-pale-leaf hover:border-leaf'
                   }`}
@@ -182,7 +178,7 @@ export default function PickupsPage() {
                       <span className="text-xs font-bold text-leaf">✓ Réservé ({item.phone})</span>
                     ) : (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleBook(item.id); setActiveListing(item); }}
+                        onClick={(e) => { e.stopPropagation(); bookListing(item.id); setActiveId(item.id); }}
                         className="px-4 py-1.5 border-2 border-forest text-forest text-xs font-bold rounded-full hover:bg-forest hover:text-sand transition"
                       >
                         Réserver
