@@ -143,7 +143,7 @@ export default function HowItWorksPage() {
           <div className="bg-sand p-5 rounded-2xl">
             <h3 className="font-bold text-forest text-base mb-2">🌍 Impact mesurable</h3>
             <p className="text-earth">
-              Chaque collecte validée met à jour votre bilan carbone ($\text{kg CO}_2$ évités) et débloque des badges d’engagement.
+              Chaque collecte validée met à jour votre bilan carbone (kg CO<sub>2</sub> évités) et débloque des badges d’engagement.
             </p>
           </div>
         </div>

@@ -11,4 +11,5 @@ export const MATERIAL_RATES: Record<string, MaterialInfo> = {
   Glass: { label: 'Verre', unit: 'kg', rate: 0.4 },
   Cardboard: { label: 'Carton', unit: 'kg', rate: 0.3 },
   Oil: { label: 'Huile usagée', unit: 'L', rate: 1.5 },
+  Aluminum: { label: 'Aluminium', unit: 'kg', rate: 2.5 }
 };
