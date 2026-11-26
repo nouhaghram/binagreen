@@ -2,13 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useBina } from '../../context/BinaContext';
+import { MATERIAL_RATES } from '../../lib/materials';
 
-const MATERIAL_RATES: Record<string, { label: string; unit: string; rate: number }> = {
-  Plastic: { label: 'Plastique', unit: 'kg', rate: 0.8 },
-  Glass: { label: 'Verre', unit: 'kg', rate: 0.4 },
-  Cardboard: { label: 'Carton', unit: 'kg', rate: 0.3 },
-  Oil: { label: 'Huile usagée', unit: 'L', rate: 1.5 },
-};
+
 
 export default function PublishPage() {
   const { addListing } = useBina();
