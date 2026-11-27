@@ -12,7 +12,7 @@ const LINKS = [
 
 export default function Header() {
   // pathname = l'adresse de la page actuelle, par exemple "/materials"
-  const pathname = usePathname();
+  const pathname = usePathname(); 
 
   return (
     // sticky : l'en-tête reste en haut quand on fait défiler

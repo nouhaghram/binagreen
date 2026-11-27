@@ -2,12 +2,23 @@
 import { useState } from 'react';
 import { useBina } from '../../context/BinaContext';
 import { MATERIAL_RATES } from '../../lib/materials';
+import dynamic from 'next/dynamic';
+
+// La carte est chargée seulement dans le navigateur (Leaflet a besoin de "window")
+const ListingsMap = dynamic(() => import('../../components/ListingsMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 grid place-items-center text-earth text-sm">
+      Chargement de la carte…
+    </div>
+  ),
+});
 // Données simulées (Mock API) pour le Grand Tunis
 
 
 export default function PickupsPage() {
   const { listings, bookListing } = useBina();
-  const [maxDistance, setMaxDistance] = useState(5);
+  const [maxDistance, setMaxDistance] = useState(10);
   const [selectedMaterial, setSelectedMaterial] = useState('Tous');
   const [activeId, setActiveId] = useState<number | null>(null);
 
@@ -45,14 +56,14 @@ export default function PickupsPage() {
             <input
               type="range"
               min="1"
-              max="10"
+              max="20"
               value={maxDistance}
               onChange={(e) => setMaxDistance(Number(e.target.value))}
               className="w-full accent-forest cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth mt-1">
               <span>1 km</span>
-              <span>10 km</span>
+              <span>20 km</span>
             </div>
           </div>
 
@@ -77,68 +88,44 @@ export default function PickupsPage() {
         </aside>
 
         {/* COLONNE 2 : Carte interactive (Centre) */}
-        <div className="lg:col-span-5 bg-pale-leaf/60 rounded-3xl border-2 border-pale-leaf relative min-h-[420px] overflow-hidden flex items-center justify-center">
-          {/* Fond stylisé représentant la carte du Grand Tunis */}
-          {/* Vraie carte OpenStreetMap centrée sur le Grand Tunis */}
-          <iframe
-            title="Carte Grand Tunis"
-            src="https://www.openstreetmap.org/export/embed.html?bbox=10.0500%2C36.7300%2C10.3300%2C36.9100&layer=mapnik"
-            className="absolute inset-0 w-full h-full border-0 opacity-85"
-          />
-          
-          <span className="absolute top-4 left-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-forest shadow-sm">
-            📍 Carte : Grand Tunis ({filteredListings.length} lots)
-          </span>
+<div className="lg:col-span-5 bg-pale-leaf/60 rounded-3xl border-2 border-pale-leaf relative min-h-[420px] overflow-hidden">
+  <div className="absolute inset-0">
+    <ListingsMap listings={filteredListings} activeId={activeId} onSelect={setActiveId} />
+  </div>
 
-          {/* Marqueurs cliquables sur la carte */}
-          {filteredListings.map((item) => {
-            const isSelected = activeListing?.id === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveId(item.id)}
-                style={{ left: item.x, top: item.y }}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition transform hover:scale-110 ${
-                  isSelected
-                    ? 'bg-yellow text-ink ring-4 ring-forest/30 z-10'
-                    : 'bg-forest text-sand'
-                }`}
-              >
-                {item.material} • {item.gain} TND
-              </button>
-            );
-          })}
+  {/* z-[1000] : pour rester au-dessus de la carte */}
+  <span className="absolute top-4 left-4 z-[1000] bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-forest shadow-sm">
+    Carte : Grand Tunis ({filteredListings.length} lots)
+  </span>
 
-          {/* Encart détail rapide si un marqueur est sélectionné */}
-          {activeListing && (
-            <div className="absolute bottom-4 left-4 right-4 bg-white p-4 rounded-2xl shadow-lg border border-pale-leaf">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-heading font-bold text-forest">{activeListing.material} — {activeListing.qty}</h3>
-                  <p className="text-xs text-earth">{activeListing.district} ({activeListing.distance} km) • {activeListing.slot}</p>
-                </div>
-                <button onClick={() => setActiveId(null)} className="text-earth text-sm font-bold">✕</button>
-              </div>
-              
-              {/* Sécurité : téléphone masqué tant que non réservé (règle Objectif 1 & 2) */}
-              {activeListing.status === 'Réservé' ? (
-                <div className="bg-pale-leaf p-2.5 rounded-xl text-xs text-forest font-bold">
-                  ✓ Réservé ! Contact ({activeListing.owner}) : {activeListing.phone}
-                </div>
-              ) : (
-                <div className="flex justify-between items-center mt-3">
-                  <span className="text-xs text-earth">🔒 Numéro débloqué après réservation</span>
-                  <button
-                    onClick={() => bookListing(activeListing.id)}
-                    className="px-4 py-1.5 bg-yellow text-ink text-xs font-bold rounded-full hover:opacity-90"
-                  >
-                    Réserver ({activeListing.gain} TND)
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+  {activeListing && (
+    <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white p-4 rounded-2xl shadow-lg border border-pale-leaf">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <h3 className="font-heading font-bold text-forest">{activeListing.material} — {activeListing.qty}</h3>
+          <p className="text-xs text-earth">{activeListing.district} ({activeListing.distance} km) • {activeListing.slot}</p>
         </div>
+        <button onClick={() => setActiveId(null)} aria-label="Fermer" className="text-earth text-sm font-bold">✕</button>
+      </div>
+
+      {activeListing.status === 'Réservé' ? (
+        <div className="bg-pale-leaf p-2.5 rounded-xl text-xs text-forest font-bold">
+          ✓ Réservé ! Contact ({activeListing.owner}) : {activeListing.phone}
+        </div>
+      ) : (
+        <div className="flex justify-between items-center mt-3">
+          <span className="text-xs text-earth">🔒 Numéro débloqué après réservation</span>
+          <button
+            onClick={() => bookListing(activeListing.id)}
+            className="px-4 py-1.5 bg-yellow text-ink text-xs font-bold rounded-full hover:opacity-90"
+          >
+            Réserver ({activeListing.gain} TND)
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
         {/* COLONNE 3 : Liste des annonces proches (Droite) */}
         <div className="lg:col-span-4 space-y-4">
